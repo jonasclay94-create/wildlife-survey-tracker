@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wildlife Survey Tracker</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Multi-record wildlife surveys with geolocation and export capabilities">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Survey Tracker">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d0d0d;
+            --bg-surface: #1a1a1a;
+            --bg-elevated: #252525;
+            --accent-primary: #7c3aed;
+            --accent-secondary: #d946ef;
+            --accent-tertiary: #06b6d4;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a0a0a0;
+            --border-subtle: #2a2a2a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+            border-radius: 24px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab {
+            padding: 14px 32px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .tab:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-elevated);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-color: transparent;
+            color: white;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .survey-item {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.3s;
+        }
+
+        .survey-item:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .survey-item h3 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .survey-detail {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .survey-detail span:first-child {
+            color: var(--text-secondary);
+        }
+
+        .survey-detail span:last-child {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-info {
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--accent-tertiary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .records-container {
+            background: var(--bg-dark);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .record-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .record-info {
+            flex: 1;
+        }
+
+        .delete-btn {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+            border: 1px solid var(--error);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .location-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--accent-tertiary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🦎 Wildlife Survey Tracker</h1>
+            <p class="subtitle">Multi-record surveys with geolocation & export</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="tab" data-tab="new-survey">➕ New Survey</button>
+            <button class="tab" data-tab="projects">📁 Projects</button>
+            <button class="tab" data-tab="history">📜 History</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="content-section active" id="dashboard">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-surveys">0</div>
+                    <div class="stat-label">Total Surveys</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-projects">0</div>
+                    <div class="stat-label">Projects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-records">0</div>
+                    <div class="stat-label">Total Records</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-animals">0</div>
+                    <div class="stat-label">Animals Found</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Recent Surveys</h2>
+                    <button class="btn btn-small" onclick="exportAllData()">📥 Export CSV</button>
+                </div>
+                <div id="recent-surveys" class="grid"></div>
+            </div>
+        </div>
+
+        <!-- New Survey -->
+        <div class="content-section" id="new-survey">
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">Create New Survey</h2>
+                <form id="survey-form">
+                    <div class="form-group">
+                        <label for="survey-type">Survey Type *</label>
+                        <select id="survey-type" required>
+                            <option value="">Select type...</option>
+                            <option value="dormouse">Dormouse Survey</option>
+                            <option value="reptile">Reptile Survey</option>
+                            <option value="mixed">Mixed Survey</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="project-select">Project (Optional)</label>
+                        <select id="project-select">
+                            <option value="">No project</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="survey-date">Survey Date *</label>
+                        <input type="date" id="survey-date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="survey-location">Survey Location *</label>
+                        <input type="text" id="survey-location" placeholder="e.g., Woodland Area A" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="survey-notes">Survey Notes</label>
+                        <textarea id="survey-notes" placeholder="General observations about the survey..."></textarea>
+                    </div>
+
+                    <div class="records-container">
+                        <h3 style="margin-bottom: 15px; color: var(--accent-primary);">Survey Records</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Add multiple observations/species to this survey</p>
+
+                        <div id="records-list"></div>
+
+                        <div style="margin-top: 20px; padding: 20px; background: var(--bg-elevated); border-radius: 12px; border: 1px dashed var(--border-subtle);">
+                            <h4 style="margin-bottom: 15px; color: var(--text-primary);">Add Record</h4>
+
+                            <div class="form-group">
+                                <label for="record-type">Record Type *</label>
+                                <select id="record-type">
+                                    <option value="dormouse">Dormouse</option>
+                                    <option value="reptile">Reptile</option>
+                                </select>
+                            </div>
+
+                            <div id="dormouse-record-fields">
+                                <div class="form-group">
+                                    <label for="nest-box">Nest Box Number</label>
+                                    <input type="text" id="nest-box" placeholder="e.g., NB-001">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dormouse-count-input">Count</label>
+                                    <input type="number" id="dormouse-count-input" min="0" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="nest-condition">Nest Condition</label>
+                                    <select id="nest-condition">
+                                        <option value="">Select condition...</option>
+                                        <option value="excellent">Excellent</option>
+                                        <option value="good">Good</option>
+                                        <option value="fair">Fair</option>
+                                        <option value="poor">Poor</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="reptile-record-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="species">Species *</label>
+                                    <input type="text" id="species" placeholder="e.g., Common Lizard, Grass Snake">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reptile-count-input">Count</label>
+                                    <input type="number" id="reptile-count-input" min="0" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="weather">Weather Conditions</label>
+                                    <input type="text" id="weather" placeholder="e.g., Sunny, 18°C">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="record-notes">Record Notes</label>
+                                <textarea id="record-notes" placeholder="Specific observations for this record..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" class="btn btn-secondary" onclick="captureLocation()" id="location-btn">
+                                    📍 Capture GPS Location
+                                </button>
+                                <span id="location-status" style="margin-left: 10px; color: var(--text-secondary); font-size: 14px;"></span>
+                            </div>
+
+                            <button type="button" class="btn" onclick="addRecord()">➕ Add This Record</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" style="margin-top: 20px; width: 100%;">Submit Survey</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Projects -->
+        <div class="content-section" id="projects">
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">Create New Project</h2>
+                <form id="project-form">
+                    <div class="form-group">
+                        <label for="project-name">Project Name *</label>
+                        <input type="text" id="project-name" placeholder="e.g., Spring 2024 Dormouse Survey" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="project-type">Survey Type *</label>
+                        <select id="project-type" required>
+                            <option value="">Select type...</option>
+                            <option value="dormouse">Dormouse</option>
+                            <option value="reptile">Reptile</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="project-location">Location *</label>
+                        <input type="text" id="project-location" placeholder="e.g., Bramley Woods" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="project-date">Start Date *</label>
+                        <input type="date" id="project-date" required>
+                    </div>
+
+                    <button type="submit" class="btn">Create Project</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Your Projects</h2>
+                </div>
+                <div id="projects-list" class="grid"></div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="content-section" id="history">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2>Survey History</h2>
+                    <button class="btn btn-small" onclick="exportAllData()">📥 Export All CSV</button>
+                </div>
+                <div class="form-group">
+                    <select id="filter-type">
+                        <option value="all">All Surveys</option>
+                        <option value="dormouse">Dormouse Only</option>
+                        <option value="reptile">Reptile Only</option>
+                        <option value="mixed">Mixed Only</option>
+                    </select>
+                </div>
+                <div id="surveys-list" class="grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Survey Detail Modal -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--accent-primary);">Survey Details</h2>
+            <div id="detail-content"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+                <button class="btn" onclick="exportSurvey()">📥 CSV</button>
+                <button class="btn" onclick="exportCurrentSurveyKML()">🌍 KML</button>
+                <button class="btn" onclick="emailSurvey()">📧 Email</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--accent-primary);">Confirm Deletion</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Are you sure you want to delete this item? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn delete-btn" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Modal -->
+    <div id="email-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--accent-primary);">Email Summary</h2>
+            <div id="email-status"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeEmailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let surveys = [];
+        let projects = [];
+        let deleteTarget = null;
+        let currentSurvey = null;
+        let currentRecords = [];
+        let currentLocation = null;
+        let db = null;
+
+        // Check if Poe API is available
+        const isPoeAvailable = typeof window.Poe !== 'undefined';
+
+        // IndexedDB Setup
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('WildlifeSurveyDB', 1);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+
+                    if (!database.objectStoreNames.contains('surveys')) {
+                        database.createObjectStore('surveys', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('projects')) {
+                        database.createObjectStore('projects', { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        async function saveToIndexedDB(storeName, data) {
+            if (!db) return;
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+
+            for (const item of data) {
+                store.put(item);
+            }
+
+            return new Promise((resolve, reject) => {
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+        }
+
+        async function loadFromIndexedDB(storeName) {
+            if (!db) return [];
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await initDB();
+                surveys = await loadFromIndexedDB('surveys');
+                projects = await loadFromIndexedDB('projects');
+            } catch (error) {
+                console.error('Failed to initialize DB:', error);
+            }
+
+            setupTabs();
+            setupForms();
+            setDefaultDate();
+            updateDashboard();
+            loadProjects();
+            loadSurveyHistory();
+        });
+
+        // Tab switching
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            const sections = document.querySelectorAll('.content-section');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.dataset.tab;
+                    tabs.forEach(t => t.classList.remove('active'));
+                    sections.forEach(s => s.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+        }
+
+        // Form setup
+        function setupForms() {
+            const recordType = document.getElementById('record-type');
+            recordType.addEventListener('change', (e) => {
+                const isDormouse = e.target.value === 'dormouse';
+                document.getElementById('dormouse-record-fields').style.display = isDormouse ? 'block' : 'none';
+                document.getElementById('reptile-record-fields').style.display = isDormouse ? 'none' : 'block';
+            });
+
+            document.getElementById('survey-form').addEventListener('submit', handleSurveySubmit);
+            document.getElementById('project-form').addEventListener('submit', handleProjectSubmit);
+            document.getElementById('filter-type').addEventListener('change', loadSurveyHistory);
+        }
+
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('survey-date').value = today;
+            document.getElementById('project-date').value = today;
+        }
+
+        // Location capture
+        function captureLocation() {
+            const btn = document.getElementById('location-btn');
+            const status = document.getElementById('location-status');
+
+            if (!navigator.geolocation) {
+                status.textContent = '❌ Geolocation not supported';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '📍 Getting location...';
+            status.textContent = 'Requesting location...';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentLocation = {
+                        lat: position.coords.latitude.toFixed(6),
+                        lng: position.coords.longitude.toFixed(6),
+                        accuracy: position.coords.accuracy.toFixed(1)
+                    };
+                    status.innerHTML = `<span class="location-badge">✓ ${currentLocation.lat}, ${currentLocation.lng}</span>`;
+                    btn.textContent = '📍 Location Captured';
+                    btn.disabled = false;
+                },
+                (error) => {
+                    status.textContent = '❌ Location access denied';
+                    btn.textContent = '📍 Capture GPS Location';
+                    btn.disabled = false;
+                    currentLocation = null;
+                }
+            );
+        }
+
+        // Add record to current survey
+        function addRecord() {
+            const recordType = document.getElementById('record-type').value;
+            const record = {
+                id: Date.now(),
+                type: recordType,
+                notes: document.getElementById('record-notes').value,
+                location: currentLocation ? {...currentLocation} : null
+            };
+
+            if (recordType === 'dormouse') {
+                const count = parseInt(document.getElementById('dormouse-count-input').value) || 0;
+                record.nestBox = document.getElementById('nest-box').value;
+                record.count = count;
+                record.nestCondition = document.getElementById('nest-condition').value;
+            } else {
+                const species = document.getElementById('species').value;
+                if (!species) {
+                    showNotification('Please enter species name', 'error');
+                    return;
+                }
+                record.species = species;
+                record.count = parseInt(document.getElementById('reptile-count-input').value) || 1;
+                record.weather = document.getElementById('weather').value;
+            }
+
+            currentRecords.push(record);
+            renderRecordsList();
+            clearRecordForm();
+            showNotification('Record added successfully');
+        }
+
+        function removeRecord(id) {
+            currentRecords = currentRecords.filter(r => r.id !== id);
+            renderRecordsList();
+            showNotification('Record removed');
+        }
+
+        function renderRecordsList() {
+            const container = document.getElementById('records-list');
+            if (currentRecords.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No records added yet</p>';
+                return;
+            }
+
+            container.innerHTML = currentRecords.map(record => {
+                const summary = record.type === 'dormouse'
+                    ? `Dormouse - Box: ${record.nestBox || 'N/A'} - Count: ${record.count}`
+                    : `${record.species} - Count: ${record.count}`;
+
+                return `
+                    <div class="record-item">
+                        <div class="record-info">
+                            <strong>${summary}</strong>
+                            ${record.location ? `<br><span class="location-badge">📍 ${record.location.lat}, ${record.location.lng}</span>` : ''}
+                            ${record.notes ? `<br><span style="font-size: 13px; color: var(--text-secondary);">${record.notes}</span>` : ''}
+                        </div>
+                        <button class="delete-btn" onclick="removeRecord(${record.id})">Remove</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function clearRecordForm() {
+            document.getElementById('nest-box').value = '';
+            document.getElementById('dormouse-count-input').value = '0';
+            document.getElementById('nest-condition').value = '';
+            document.getElementById('species').value = '';
+            document.getElementById('reptile-count-input').value = '1';
+            document.getElementById('weather').value = '';
+            document.getElementById('record-notes').value = '';
+            currentLocation = null;
+            document.getElementById('location-status').textContent = '';
+            document.getElementById('location-btn').textContent = '📍 Capture GPS Location';
+        }
+
+        // Survey submission
+        async function handleSurveySubmit(e) {
+            e.preventDefault();
+
+            if (currentRecords.length === 0) {
+                showNotification('Please add at least one record', 'error');
+                return;
+            }
+
+            const survey = {
+                id: Date.now(),
+                type: document.getElementById('survey-type').value,
+                projectId: document.getElementById('project-select').value,
+                date: document.getElementById('survey-date').value,
+                location: document.getElementById('survey-location').value,
+                notes: document.getElementById('survey-notes').value,
+                records: [...currentRecords],
+                createdAt: new Date().toISOString()
+            };
+
+            surveys.unshift(survey);
+            await saveToIndexedDB('surveys', surveys);
+            showNotification('Survey saved successfully!');
+
+            document.getElementById('survey-form').reset();
+            currentRecords = [];
+            renderRecordsList();
+            setDefaultDate();
+            updateDashboard();
+
+            document.querySelector('[data-tab="dashboard"]').click();
+        }
+
+        // Project submission
+        async function handleProjectSubmit(e) {
+            e.preventDefault();
+
+            const project = {
+                id: Date.now(),
+                name: document.getElementById('project-name').value,
+                type: document.getElementById('project-type').value,
+                location: document.getElementById('project-location').value,
+                date: document.getElementById('project-date').value,
+                createdAt: new Date().toISOString()
+            };
+
+            projects.unshift(project);
+            await saveToIndexedDB('projects', projects);
+            showNotification('Project created successfully!');
+
+            document.getElementById('project-form').reset();
+            setDefaultDate();
+            loadProjects();
+            updateProjectSelect();
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            const totalSurveys = surveys.length;
+            const totalProjects = projects.length;
+            const totalRecords = surveys.reduce((sum, s) => sum + s.records.length, 0);
+            const totalAnimals = surveys.reduce((sum, s) =>
+                sum + s.records.reduce((rSum, r) => rSum + (r.count || 0), 0), 0);
+
+            document.getElementById('total-surveys').textContent = totalSurveys;
+            document.getElementById('total-projects').textContent = totalProjects;
+            document.getElementById('total-records').textContent = totalRecords;
+            document.getElementById('total-animals').textContent = totalAnimals;
+
+            const recentSurveys = surveys.slice(0, 6);
+            const recentContainer = document.getElementById('recent-surveys');
+
+            if (recentSurveys.length === 0) {
+                recentContainer.innerHTML = '<div class="empty-state"><p>No surveys yet. Create your first survey!</p></div>';
+            } else {
+                recentContainer.innerHTML = recentSurveys.map(survey => renderSurveyCard(survey, false)).join('');
+            }
+
+            updateProjectSelect();
+        }
+
+        // Update project select
+        function updateProjectSelect() {
+            const select = document.getElementById('project-select');
+            select.innerHTML = '<option value="">No project</option>' +
+                projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+
+        // Load projects
+        function loadProjects() {
+            const container = document.getElementById('projects-list');
+
+            if (projects.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No projects yet. Create your first project!</p></div>';
+            } else {
+                container.innerHTML = projects.map(project => `
+                    <div class="survey-item">
+                        <h3>${project.name}</h3>
+                        <div class="survey-detail">
+                            <span>Type:</span>
+                            <span class="badge badge-info">${project.type}</span>
+                        </div>
+                        <div class="survey-detail">
+                            <span>Location:</span>
+                            <span>${project.location}</span>
+                        </div>
+                        <div class="survey-detail">
+                            <span>Start Date:</span>
+                            <span>${formatDate(project.date)}</span>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-small" onclick="exportProjectKML(${project.id})">🌍 KML</button>
+                            <button class="btn btn-small" onclick="emailProject(${project.id})">📧 Email</button>
+                            <button class="delete-btn" onclick="deleteProject(${project.id})">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Load survey history
+        function loadSurveyHistory() {
+            const filter = document.getElementById('filter-type').value;
+            const filtered = filter === 'all' ? surveys : surveys.filter(s => s.type === filter);
+            const container = document.getElementById('surveys-list');
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No surveys found.</p></div>';
+            } else {
+                container.innerHTML = filtered.map(survey => renderSurveyCard(survey, true)).join('');
+            }
+        }
+
+        // Render survey card
+        function renderSurveyCard(survey, showActions = false) {
+            const project = projects.find(p => p.id === survey.projectId);
+            const projectName = project ? project.name : 'No Project';
+            const recordCount = survey.records.length;
+            const totalCount = survey.records.reduce((sum, r) => sum + (r.count || 0), 0);
+            const hasLocation = survey.records.some(r => r.location);
+
+            return `
+                <div class="survey-item" onclick="showSurveyDetail(${survey.id})">
+                    <h3>🔬 ${survey.type.charAt(0).toUpperCase() + survey.type.slice(1)} Survey</h3>
+                    <div class="survey-detail">
+                        <span>Project:</span>
+                        <span>${projectName}</span>
+                    </div>
+                    <div class="survey-detail">
+                        <span>Date:</span>
+                        <span>${formatDate(survey.date)}</span>
+                    </div>
+                    <div class="survey-detail">
+                        <span>Location:</span>
+                        <span>${survey.location}</span>
+                    </div>
+                    <div class="survey-detail">
+                        <span>Records:</span>
+                        <span class="badge badge-success">${recordCount} records</span>
+                    </div>
+                    <div class="survey-detail">
+                        <span>Total Count:</span>
+                        <span>${totalCount} animals</span>
+                    </div>
+                    ${hasLocation ? '<div class="survey-detail"><span></span><span class="location-badge">📍 Has GPS data</span></div>' : ''}
+                    ${showActions ? `
+                        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;" onclick="event.stopPropagation()">
+                            <button class="btn btn-small" onclick="event.stopPropagation(); exportSurveyById(${survey.id})">📥 CSV</button>
+                            <button class="btn btn-small" onclick="event.stopPropagation(); exportSurveyKML(${survey.id})">🌍 KML</button>
+                            <button class="btn btn-small" onclick="event.stopPropagation(); emailSurveyById(${survey.id})">📧 Email</button>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteSurvey(${survey.id})">Delete</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Show survey detail modal
+        function showSurveyDetail(id) {
+            const survey = surveys.find(s => s.id === id);
+            if (!survey) return;
+
+            currentSurvey = survey;
+            const project = projects.find(p => p.id === survey.projectId);
+
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <div class="survey-detail"><span>Type:</span><span>${survey.type}</span></div>
+                    <div class="survey-detail"><span>Project:</span><span>${project ? project.name : 'No Project'}</span></div>
+                    <div class="survey-detail"><span>Date:</span><span>${formatDate(survey.date)}</span></div>
+                    <div class="survey-detail"><span>Location:</span><span>${survey.location}</span></div>
+                    ${survey.notes ? `<div class="survey-detail" style="flex-direction: column; align-items: flex-start;">
+                        <span>Notes:</span>
+                        <span style="margin-top: 5px;">${survey.notes}</span>
+                    </div>` : ''}
+                </div>
+                <h3 style="margin-bottom: 15px; color: var(--accent-primary);">Records (${survey.records.length})</h3>
+            `;
+
+            survey.records.forEach((record, idx) => {
+                html += '<div class="record-item" style="flex-direction: column; align-items: flex-start; margin-bottom: 15px;">';
+                html += `<strong style="color: var(--accent-primary);">Record ${idx + 1} - ${record.type === 'dormouse' ? 'Dormouse' : record.species}</strong>`;
+
+                if (record.type === 'dormouse') {
+                    html += `<div class="survey-detail"><span>Nest Box:</span><span>${record.nestBox || 'N/A'}</span></div>`;
+                    html += `<div class="survey-detail"><span>Count:</span><span>${record.count}</span></div>`;
+                    html += `<div class="survey-detail"><span>Condition:</span><span>${record.nestCondition || 'N/A'}</span></div>`;
+                } else {
+                    html += `<div class="survey-detail"><span>Count:</span><span>${record.count}</span></div>`;
+                    if (record.weather) html += `<div class="survey-detail"><span>Weather:</span><span>${record.weather}</span></div>`;
+                }
+
+                if (record.location) {
+                    html += `<div class="survey-detail"><span>GPS:</span><span class="location-badge">${record.location.lat}, ${record.location.lng}</span></div>`;
+                }
+                if (record.notes) {
+                    html += `<div class="survey-detail" style="flex-direction: column; align-items: flex-start;">
+                        <span>Notes:</span>
+                        <span style="margin-top: 5px; font-size: 13px;">${record.notes}</span>
+                    </div>`;
+                }
+                html += '</div>';
+            });
+
+            document.getElementById('detail-content').innerHTML = html;
+            document.getElementById('detail-modal').classList.add('active');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+            currentSurvey = null;
+        }
+
+        // CSV Export
+        function generateCSV(surveysToExport) {
+            const rows = [];
+            rows.push(['Survey ID', 'Survey Type', 'Project', 'Survey Date', 'Survey Location', 'Survey Notes',
+                       'Record Type', 'Species/Box', 'Count', 'Condition/Weather', 'Record Notes',
+                       'GPS Latitude', 'GPS Longitude', 'GPS Accuracy']);
+
+            surveysToExport.forEach(survey => {
+                const project = projects.find(p => p.id === survey.projectId);
+                const projectName = project ? project.name : 'No Project';
+
+                survey.records.forEach(record => {
+                    const row = [
+                        survey.id,
+                        survey.type,
+                        projectName,
+                        survey.date,
+                        survey.location,
+                        survey.notes || '',
+                        record.type,
+                        record.type === 'dormouse' ? (record.nestBox || 'N/A') : record.species,
+                        record.count || 0,
+                        record.type === 'dormouse' ? (record.nestCondition || '') : (record.weather || ''),
+                        record.notes || '',
+                        record.location ? record.location.lat : '',
+                        record.location ? record.location.lng : '',
+                        record.location ? record.location.accuracy : ''
+                    ];
+                    rows.push(row);
+                });
+            });
+
+            return rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportAllData() {
+            if (surveys.length === 0) {
+                showNotification('No surveys to export', 'error');
+                return;
+            }
+            const csv = generateCSV(surveys);
+            const filename = `wildlife_surveys_${new Date().toISOString().split('T')[0]}.csv`;
+            downloadCSV(csv, filename);
+            showNotification('CSV exported successfully');
+        }
+
+        function exportSurvey() {
+            if (!currentSurvey) return;
+            const csv = generateCSV([currentSurvey]);
+            const filename = `survey_${currentSurvey.id}_${currentSurvey.date}.csv`;
+            downloadCSV(csv, filename);
+            showNotification('CSV exported successfully');
+        }
+
+        function exportSurveyById(id) {
+            const survey = surveys.find(s => s.id === id);
+            if (!survey) return;
+            const csv = generateCSV([survey]);
+            const filename = `survey_${survey.id}_${survey.date}.csv`;
+            downloadCSV(csv, filename);
+            showNotification('CSV exported successfully');
+        }
+
+        // KML Export
+        function generateKML(surveysToExport, projectName = 'Wildlife Surveys') {
+            let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${escapeXml(projectName)}</name>
+    <description>Wildlife survey data exported from Wildlife Survey Tracker</description>
+
+    <Style id="dormouse">
+      <IconStyle>
+        <color>ff00ff00</color>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+
+    <Style id="reptile">
+      <IconStyle>
+        <color>ff0000ff</color>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/placemark_square.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+`;
+
+            surveysToExport.forEach(survey => {
+                const project = projects.find(p => p.id === survey.projectId);
+                const projectLabel = project ? project.name : 'No Project';
+
+                survey.records.forEach((record, idx) => {
+                    if (!record.location) return; // Skip records without GPS data
+
+                    const name = record.type === 'dormouse'
+                        ? `Dormouse - ${record.nestBox || 'Unknown Box'}`
+                        : `${record.species}`;
+
+                    let description = `<![CDATA[
+<b>Survey Date:</b> ${formatDate(survey.date)}<br/>
+<b>Project:</b> ${projectLabel}<br/>
+<b>Survey Location:</b> ${survey.location}<br/>
+<b>Record Type:</b> ${record.type}<br/>`;
+
+                    if (record.type === 'dormouse') {
+                        description += `<b>Nest Box:</b> ${record.nestBox || 'N/A'}<br/>
+<b>Count:</b> ${record.count}<br/>
+<b>Condition:</b> ${record.nestCondition || 'N/A'}<br/>`;
+                    } else {
+                        description += `<b>Species:</b> ${record.species}<br/>
+<b>Count:</b> ${record.count}<br/>`;
+                        if (record.weather) description += `<b>Weather:</b> ${record.weather}<br/>`;
+                    }
+
+                    if (record.notes) {
+                        description += `<b>Notes:</b> ${record.notes}<br/>`;
+                    }
+
+                    description += `<b>GPS Accuracy:</b> ${record.location.accuracy}m<br/>`;
+                    if (survey.notes) {
+                        description += `<b>Survey Notes:</b> ${survey.notes}<br/>`;
+                    }
+
+                    description += `]]>`;
+
+                    kml += `
+    <Placemark>
+      <name>${escapeXml(name)}</name>
+      <description>${description}</description>
+      <styleUrl>#${record.type}</styleUrl>
+      <Point>
+        <coordinates>${record.location.lng},${record.location.lat},0</coordinates>
+      </Point>
+    </Placemark>`;
+                });
+            });
+
+            kml += `
+  </Document>
+</kml>`;
+
+            return kml;
+        }
+
+        function escapeXml(unsafe) {
+            return String(unsafe).replace(/[<>&'"]/g, (c) => {
+                switch (c) {
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '&': return '&amp;';
+                    case '\'': return '&apos;';
+                    case '"': return '&quot;';
+                }
+            });
+        }
+
+        function downloadKML(kml, filename) {
+            const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportProjectKML(projectId) {
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return;
+
+            const projectSurveys = surveys.filter(s => s.projectId === project.id);
+
+            if (projectSurveys.length === 0) {
+                showNotification('No surveys in this project', 'error');
+                return;
+            }
+
+            // Check if any records have GPS data
+            const hasGPS = projectSurveys.some(s => s.records.some(r => r.location));
+            if (!hasGPS) {
+                showNotification('No GPS data found in this project', 'error');
+                return;
+            }
+
+            const kml = generateKML(projectSurveys, project.name);
+            const filename = `${project.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.kml`;
+            downloadKML(kml, filename);
+            showNotification('KML exported successfully - Open in Google Earth!');
+        }
+
+        function exportSurveyKML(id) {
+            const survey = surveys.find(s => s.id === id);
+            if (!survey) return;
+
+            const hasGPS = survey.records.some(r => r.location);
+            if (!hasGPS) {
+                showNotification('No GPS data found in this survey', 'error');
+                return;
+            }
+
+            const kml = generateKML([survey], `Survey ${survey.id}`);
+            const filename = `survey_${survey.id}_${survey.date}.kml`;
+            downloadKML(kml, filename);
+            showNotification('KML exported successfully - Open in Google Earth!');
+        }
+
+        function exportCurrentSurveyKML() {
+            if (!currentSurvey) return;
+            exportSurveyKML(currentSurvey.id);
+        }
+
+        // Email functionality
+        async function emailSurvey() {
+            if (!currentSurvey) return;
+            await sendEmailSummary(currentSurvey);
+        }
+
+        async function emailSurveyById(id) {
+            const survey = surveys.find(s => s.id === id);
+            if (!survey) return;
+            await sendEmailSummary(survey);
+        }
+
+        async function emailProject(id) {
+            const project = projects.find(p => p.id === id);
+            if (!project) return;
+            const projectSurveys = surveys.filter(s => s.projectId === project.id);
+
+            if (projectSurveys.length === 0) {
+                showNotification('No surveys in this project', 'error');
+                return;
+            }
+
+            await sendEmailSummary(project, projectSurveys);
+        }
+
+        async function sendEmailSummary(item, relatedSurveys = null) {
+            if (!isPoeAvailable) {
+                showNotification('Poe API not available. Email feature disabled.', 'error');
+                return;
+            }
+
+            document.getElementById('email-modal').classList.add('active');
+            document.getElementById('email-status').innerHTML = '<p style="color: var(--text-secondary);">Formatting survey data...</p>';
+
+            try {
+                let prompt = '';
+
+                if (relatedSurveys) {
+                    // Project summary
+                    const totalRecords = relatedSurveys.reduce((sum, s) => sum + s.records.length, 0);
+                    const totalAnimals = relatedSurveys.reduce((sum, s) =>
+                        sum + s.records.reduce((rSum, r) => rSum + (r.count || 0), 0), 0);
+
+                    prompt = `Format this wildlife survey project data for an email. Output only the raw data in a clear, structured format - no greetings, no professional formatting, just the survey information:
+
+Project: ${item.name}
+Type: ${item.type}
+Location: ${item.location}
+Start Date: ${formatDate(item.date)}
+Total Surveys: ${relatedSurveys.length}
+Total Records: ${totalRecords}
+Total Animals Found: ${totalAnimals}
+
+Survey Details:
+${relatedSurveys.map((s, i) => `
+Survey ${i + 1}:
+- Date: ${s.date}
+- Location: ${s.location}
+- Records: ${s.records.length}
+- Animals: ${s.records.reduce((sum, r) => sum + (r.count || 0), 0)}
+${s.records.map(r => `  * ${r.type === 'dormouse' ? `Dormouse at ${r.nestBox}` : r.species}: ${r.count}${r.location ? ` (GPS: ${r.location.lat}, ${r.location.lng})` : ''}`).join('\n')}
+`).join('\n')}
+
+Format this as clear, structured data with headings and bullet points. Include all the data shown above. Do not add greetings, signatures, or any professional email formatting.`;
+                } else {
+                    // Single survey summary
+                    const survey = item;
+                    const project = projects.find(p => p.id === survey.projectId);
+
+                    prompt = `Format this wildlife survey data for an email. Output only the raw data in a clear, structured format - no greetings, no professional formatting, just the survey information:
+
+Survey Type: ${survey.type}
+Project: ${project ? project.name : 'No Project'}
+Date: ${formatDate(survey.date)}
+Location: ${survey.location}
+${survey.notes ? `Survey Notes: ${survey.notes}` : ''}
+
+Records (${survey.records.length}):
+${survey.records.map((r, i) => `
+Record ${i + 1}:
+- Type: ${r.type === 'dormouse' ? 'Dormouse' : r.species}
+${r.type === 'dormouse' ? `- Nest Box: ${r.nestBox || 'N/A'}\n- Count: ${r.count}\n- Condition: ${r.nestCondition || 'N/A'}` : `- Count: ${r.count}${r.weather ? `\n- Weather: ${r.weather}` : ''}`}
+${r.location ? `- GPS: ${r.location.lat}, ${r.location.lng} (Accuracy: ${r.location.accuracy}m)` : ''}
+${r.notes ? `- Notes: ${r.notes}` : ''}
+`).join('\n')}
+
+Format this as clear, structured data with headings and bullet points. Include all the data shown above. Do not add greetings, signatures, or any professional email formatting.`;
+                }
+
+                window.Poe.registerHandler('email-handler', (result) => {
+                    const msg = result.responses[0];
+                    const statusEl = document.getElementById('email-status');
+
+                    if (msg.status === 'error') {
+                        statusEl.innerHTML = `<p style="color: var(--error);">Error: ${msg.statusText}</p>`;
+                    } else if (msg.status === 'complete') {
+                        statusEl.innerHTML = `
+                            <div style="background: var(--bg-dark); padding: 20px; border-radius: 12px; max-height: 400px; overflow-y: auto;">
+                                <pre style="white-space: pre-wrap; font-family: 'DM Sans', sans-serif; color: var(--text-primary); line-height: 1.6;">${msg.content}</pre>
+                            </div>
+                            <p style="color: var(--success); margin-top: 15px;">✓ Data formatted! Copy and paste into your email.</p>
+                        `;
+                    } else {
+                        statusEl.innerHTML = '<p style="color: var(--text-secondary);">Formatting survey data...</p>';
+                    }
+                });
+
+                await window.Poe.sendUserMessage(`@GPT-5.1 ${prompt}`, {
+                    handler: 'email-handler',
+                    stream: false,
+                    openChat: false
+                });
+
+            } catch (error) {
+                document.getElementById('email-status').innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+            }
+        }
+
+        function closeEmailModal() {
+            document.getElementById('email-modal').classList.remove('active');
+        }
+
+        // Delete functions
+        function deleteSurvey(id) {
+            deleteTarget = { type: 'survey', id };
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function deleteProject(id) {
+            deleteTarget = { type: 'project', id };
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            deleteTarget = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteTarget) return;
+
+            if (deleteTarget.type === 'survey') {
+                surveys = surveys.filter(s => s.id !== deleteTarget.id);
+                await saveToIndexedDB('surveys', surveys);
+                updateDashboard();
+                loadSurveyHistory();
+            } else {
+                projects = projects.filter(p => p.id !== deleteTarget.id);
+                await saveToIndexedDB('projects', projects);
+                loadProjects();
+                updateProjectSelect();
+            }
+
+            showNotification('Item deleted successfully');
+            closeDeleteModal();
+        }
+
+        // Utility functions
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function showNotification(message, type = 'success') {
+            const toast = document.createElement('div');
+            const bgColor = type === 'error' ? 'var(--error)' : 'var(--success)';
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 16px 24px;
+                border-radius: 12px;
+                font-weight: 600;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+                z-index: 2000;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
